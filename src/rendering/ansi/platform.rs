@@ -1,4 +1,3 @@
-use crate::Result;
 use crate::common::size::Size;
 use std::fs::File;
 use std::io;
@@ -61,7 +60,7 @@ fn invalid_dimensions() -> io::Error {
 }
 
 #[cfg(windows)]
-pub fn terminal_size(output: &File) -> Result<Size> {
+pub fn terminal_size(output: &File) -> io::Result<Size> {
     use std::ffi::c_void;
     use std::os::windows::io::AsRawHandle;
 
@@ -113,7 +112,7 @@ pub fn terminal_size(output: &File) -> Result<Size> {
     let success = unsafe { get_console_screen_buffer_info(output.as_raw_handle(), &mut info) };
 
     if success == 0 {
-        return Err(io::Error::last_os_error().into());
+        return Err(io::Error::last_os_error());
     }
 
     let width = i32::from(info.window.right) - i32::from(info.window.left) + 1;
@@ -121,7 +120,7 @@ pub fn terminal_size(output: &File) -> Result<Size> {
     let width = u16::try_from(width).map_err(|_| invalid_dimensions())?;
     let height = u16::try_from(height).map_err(|_| invalid_dimensions())?;
 
-    Size::try_from((width, height))
+    Size::try_from((width, height)).map_err(|_| invalid_dimensions())
 }
 
 #[cfg(any(
@@ -134,7 +133,7 @@ pub fn terminal_size(output: &File) -> Result<Size> {
     target_os = "netbsd",
     target_os = "dragonfly"
 ))]
-fn unix_terminal_size(output: &File, request: std::ffi::c_ulong) -> Result<Size> {
+fn unix_terminal_size(output: &File, request: std::ffi::c_ulong) -> io::Result<Size> {
     use std::ffi::c_int;
     use std::os::fd::AsRawFd;
 
@@ -168,7 +167,7 @@ fn unix_terminal_size(output: &File, request: std::ffi::c_ulong) -> Result<Size>
 }
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
-pub fn terminal_size(output: &File) -> Result<Size> {
+pub fn terminal_size(output: &File) -> io::Result<Size> {
     unix_terminal_size(output, 0x5413)
 }
 
@@ -180,7 +179,7 @@ pub fn terminal_size(output: &File) -> Result<Size> {
     target_os = "netbsd",
     target_os = "dragonfly"
 ))]
-pub fn terminal_size(output: &File) -> Result<Size> {
+pub fn terminal_size(output: &File) -> io::Result<Size> {
     unix_terminal_size(output, 0x4008_7468)
 }
 
@@ -195,7 +194,7 @@ pub fn terminal_size(output: &File) -> Result<Size> {
     target_os = "netbsd",
     target_os = "dragonfly"
 )))]
-pub fn terminal_size(_output: &File) -> Result<Size> {
+pub fn terminal_size(_output: &File) -> io::Result<Size> {
     Err(io::Error::new(
         io::ErrorKind::Unsupported,
         "terminal size is not supported on this platform",

@@ -1,5 +1,7 @@
-use crate::common::position::Position;
-use crate::{Error, Result};
+use crate::common::{
+    position::Position,
+    size::Error::{ZeroHeight, ZeroWidth},
+};
 use std::num::NonZeroU16;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -48,14 +50,19 @@ impl Size {
     }
 }
 
-impl TryFrom<(u16, u16)> for Size {
-    type Error = crate::Error;
+pub enum Error {
+    ZeroWidth,
+    ZeroHeight,
+}
 
-    fn try_from((width, height): (u16, u16)) -> Result<Self> {
+impl TryFrom<(u16, u16)> for Size {
+    type Error = Error;
+
+    fn try_from((width, height): (u16, u16)) -> Result<Self, Error> {
         match Self::try_new(width, height) {
             Some(size) => Ok(size),
-            None if width == 0 => Err(Error::ZeroWidth),
-            None => Err(Error::ZeroHeight),
+            None if width == 0 => Err(ZeroWidth),
+            None => Err(ZeroHeight),
         }
     }
 }

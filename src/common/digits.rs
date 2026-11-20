@@ -19,12 +19,12 @@ impl Digits<3> {
     }
 
     #[inline]
-    pub fn look_u8(value: u8) -> Self {
-        static DIGITS3: [Digits<3>; 256] = Digits::<3>::table();
+    pub fn lookup_u8(value: u8) -> Self {
+        const DIGITS3: [Digits<3>; 256] = Digits::<3>::create_lookup_table();
         DIGITS3[value as usize]
     }
 
-    const fn table() -> [Self; 256] {
+    const fn create_lookup_table() -> [Self; 256] {
         let mut table = [Self::from_u8(0); 256];
         let mut i = 0;
 

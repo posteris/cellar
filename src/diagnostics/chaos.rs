@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use crate::common::{color::Color, etchel::Etchel, position::Position};
+use crate::common::{cell::Cell, color::Color, position::Position};
 use crate::rendering::{canvas::Canvas, painter::Painter};
 
 pub struct Chaos {
@@ -37,7 +37,7 @@ impl Painter for Chaos {
                 h ^= h >> 16;
 
                 let color = Color::new(h as u8, (h >> 8) as u8, (h >> 16) as u8);
-                canvas.plot(Position::new(x, y), Etchel::solid(color));
+                canvas.plot(Position::new(x, y), Cell::solid(color));
             }
         }
     }
