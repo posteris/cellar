@@ -1,9 +1,8 @@
 use crate::{
-    Result,
     diagnostics::measure::Measure,
     rendering::{canvas::Canvas, painter::Painter},
 };
-use std::time::Duration;
+use std::{io::Result, time::Duration};
 
 pub trait Renderer: Canvas + Sized {
     fn present(&mut self) -> Result<()>;

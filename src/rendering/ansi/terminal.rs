@@ -1,5 +1,4 @@
-use crate::Result;
-use crate::common::etchel::Etchel;
+use crate::common::cell::Cell;
 use crate::common::position::Position;
 use crate::common::size::Size;
 use crate::rendering::ansi::encoder::Encoder;
@@ -8,7 +7,7 @@ use crate::rendering::ansi::state::State;
 use crate::rendering::canvas::Canvas;
 use crate::rendering::renderer::Renderer;
 use std::fs::File;
-use std::io::Write;
+use std::io::{Result, Write};
 
 pub struct Terminal {
     size: Size,
@@ -57,14 +56,14 @@ impl Canvas for Terminal {
     }
 
     #[inline]
-    fn plot(&mut self, position: Position, etchel: Etchel) {
+    fn plot(&mut self, position: Position, cell: Cell) {
         let encoder = &mut self.encoder;
         let state = &mut self.state;
 
         state.ensure_cursor(position, |p| encoder.encode_move(p));
-        state.ensure_foreground(etchel.foreground, |c| encoder.encode_foreground(c));
-        state.ensure_background(etchel.background, |c| encoder.encode_background(c));
-        encoder.encode_glyph_u8(etchel.glyph);
+        state.ensure_foreground(cell.foreground, |c| encoder.encode_foreground(c));
+        state.ensure_background(cell.background, |c| encoder.encode_background(c));
+        encoder.encode_glyph_u8(cell.glyph);
         state.advance_cursor(self.size);
     }
 }
