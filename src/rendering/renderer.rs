@@ -1,33 +1,45 @@
 use crate::{
-    diagnostics::measure::Measure,
-    rendering::{canvas::Canvas, painter::Painter},
+    common::size::Size,
+    diagnostics::{chaos::Chaos, watch::Watch},
+    rendering::{frame::Frame, painter::Painter},
 };
 use std::{io::Result, time::Duration};
 
-pub trait Renderer: Canvas + Sized {
-    fn present(&mut self) -> Result<()>;
+pub trait Renderer {
+    fn size(&self) -> Result<Size>;
+    fn present(&mut self, frame: &mut Frame) -> Result<()>;
 
     fn run(&mut self, painter: &mut impl Painter) -> Result<()> {
+        let mut frame = Frame::new(self.size()?);
+
         loop {
-            painter.paint(self);
-            self.present()?;
+            frame.resize(self.size()?);
+            painter.paint(&mut frame);
+            self.present(&mut frame)?;
         }
     }
 
-    fn benchmark(
-        &mut self,
-        painter: &mut impl Painter,
-        iterations: u32,
-    ) -> Result<(Duration, Duration)> {
-        let iterations = iterations.max(1);
-        let mut paint_sum: Duration = Duration::ZERO;
-        let mut present_sum: Duration = Duration::ZERO;
+    fn bench(&mut self, iterations: u32) -> Result<[Duration; 4]> {
+        let mut frame = Frame::new(self.size()?);
+        let mut painter = Chaos::new();
+
+        let mut size_watch = Watch::new();
+        let mut resize_watch = Watch::new();
+        let mut paint_watch = Watch::new();
+        let mut present_watch = Watch::new();
 
         for _ in 0..iterations {
-            Measure::accumulate(&mut paint_sum, || painter.paint(self));
-            Measure::accumulate(&mut present_sum, || self.present())?;
+            let size = size_watch.measure(|| self.size())?;
+            resize_watch.measure(|| frame.resize(size));
+            paint_watch.measure(|| painter.paint(&mut frame));
+            present_watch.measure(|| self.present(&mut frame))?;
         }
 
-        Ok((paint_sum / iterations, present_sum / iterations))
+        Ok([
+            size_watch.average(),
+            resize_watch.average(),
+            paint_watch.average(),
+            present_watch.average(),
+        ])
     }
 }

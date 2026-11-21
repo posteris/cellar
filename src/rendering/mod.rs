@@ -1,4 +1,4 @@
 pub mod ansi;
-pub mod canvas;
+pub mod frame;
 pub mod painter;
 pub mod renderer;

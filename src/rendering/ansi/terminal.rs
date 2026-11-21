@@ -1,17 +1,13 @@
-use crate::common::cell::Cell;
 use crate::common::position::Position;
 use crate::common::size::Size;
 use crate::rendering::ansi::encoder::Encoder;
 use crate::rendering::ansi::platform::{raw_stdout, terminal_size};
-use crate::rendering::ansi::state::State;
-use crate::rendering::canvas::Canvas;
+use crate::rendering::frame::Frame;
 use crate::rendering::renderer::Renderer;
 use std::fs::File;
 use std::io::{Result, Write};
 
 pub struct Terminal {
-    size: Size,
-    state: State,
     encoder: Encoder,
     output: File,
 }
@@ -20,20 +16,14 @@ impl Terminal {
     pub fn new() -> Result<Self> {
         let output = raw_stdout()?;
         let size = terminal_size(&output)?;
-        let encoder = Encoder::new(size.area() as usize * 32);
-        let state = State::new();
+        let encoder = Encoder::new(size.area() as usize * 48);
 
-        let mut terminal = Self {
-            size,
-            state,
-            encoder,
-            output,
-        };
+        let mut terminal = Self { encoder, output };
 
         terminal.encoder.encode_cursor_hide();
         terminal.encoder.encode_alternate_enter();
         terminal.encoder.encode_clear();
-        terminal.present()?;
+        terminal.output.write_all(terminal.encoder.written())?;
 
         Ok(terminal)
     }
@@ -45,36 +35,27 @@ impl Drop for Terminal {
         self.encoder.encode_reset();
         self.encoder.encode_cursor_show();
         self.encoder.encode_alternate_leave();
-        let _ = self.present();
-    }
-}
-
-impl Canvas for Terminal {
-    #[inline]
-    fn size(&self) -> Size {
-        self.size
-    }
-
-    #[inline]
-    fn plot(&mut self, position: Position, cell: Cell) {
-        let encoder = &mut self.encoder;
-        let state = &mut self.state;
-
-        state.ensure_cursor(position, |p| encoder.encode_move(p));
-        state.ensure_foreground(cell.foreground, |c| encoder.encode_foreground(c));
-        state.ensure_background(cell.background, |c| encoder.encode_background(c));
-        encoder.encode_glyph_u8(cell.glyph);
-        state.advance_cursor(self.size);
+        let _ = self.output.write_all(self.encoder.written());
     }
 }
 
 impl Renderer for Terminal {
     #[inline]
-    fn present(&mut self) -> Result<()> {
+    fn size(&self) -> Result<Size> {
+        terminal_size(&self.output)
+    }
+
+    #[inline]
+    fn present(&mut self, frame: &mut Frame) -> Result<()> {
+        self.encoder.encode_move(Position::zero());
+        for cell in frame.cells() {
+            self.encoder.encode_foreground(cell.foreground);
+            self.encoder.encode_background(cell.background);
+            self.encoder.encode_glyph_u8(cell.glyph);
+        }
+
         self.output.write_all(self.encoder.written())?;
         self.encoder.clear();
-        self.state.forget_cursor();
-        self.size = terminal_size(&self.output)?;
         Ok(())
     }
 }
