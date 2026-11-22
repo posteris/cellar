@@ -20,9 +20,12 @@ impl Position {
     }
 
     #[inline]
-    pub const fn flatten(self, size: Size) -> u32 {
-        debug_assert!(size.contains(self));
-        self.y as u32 * size.width() as u32 + self.x as u32
+    pub const fn flatten(self, size: Size) -> Option<u32> {
+        if size.contains(self) {
+            Some(self.y as u32 * size.width() as u32 + self.x as u32)
+        } else {
+            None
+        }
     }
 
     #[inline]
