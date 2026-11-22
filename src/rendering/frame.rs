@@ -30,11 +30,7 @@ impl Frame {
 
     #[inline]
     pub fn resize(&mut self, new_size: Size) {
-        if new_size.area() > self.size.area() {
-            let additional = new_size.area() - self.size.area();
-            self.cells.reserve(additional as usize);
-        }
-
+        self.cells.resize(new_size.area() as usize, Cell::EMPTY);
         self.size = new_size;
     }
 
