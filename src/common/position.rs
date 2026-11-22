@@ -1,5 +1,7 @@
 use std::ops::Add;
 
+use crate::common::size::Size;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Position {
     pub x: u16,
@@ -18,8 +20,9 @@ impl Position {
     }
 
     #[inline]
-    pub const fn flatten(self, stride: u16) -> u32 {
-        self.y as u32 * stride as u32 + self.x as u32
+    pub const fn flatten(self, size: Size) -> u32 {
+        debug_assert!(size.contains(self));
+        self.y as u32 * size.width() as u32 + self.x as u32
     }
 
     #[inline]

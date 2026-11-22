@@ -55,8 +55,7 @@ impl Index<Position> for Frame {
 
     #[inline]
     fn index(&self, position: Position) -> &Self::Output {
-        let stride = self.size().width();
-        let index = position.flatten(stride);
+        let index = position.flatten(self.size());
         &self.cells[index as usize]
     }
 }
@@ -64,8 +63,7 @@ impl Index<Position> for Frame {
 impl IndexMut<Position> for Frame {
     #[inline]
     fn index_mut(&mut self, position: Position) -> &mut Self::Output {
-        let stride = self.size().width();
-        let index = position.flatten(stride);
+        let index = position.flatten(self.size());
         &mut self.cells[index as usize]
     }
 }
