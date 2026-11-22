@@ -14,6 +14,12 @@ impl Frame {
     }
 
     #[inline]
+    pub fn resize(&mut self, new_size: Size) {
+        self.cells.resize(new_size.area() as usize, Cell::EMPTY);
+        self.size = new_size;
+    }
+
+    #[inline]
     pub fn size(&self) -> Size {
         self.size
     }
@@ -25,17 +31,16 @@ impl Frame {
 
     #[inline]
     pub fn clear(&mut self) {
-        self.cells.clear();
+        self.cells.fill(Cell::EMPTY);
     }
 
     #[inline]
-    pub fn resize(&mut self, new_size: Size) {
-        self.cells.resize(new_size.area() as usize, Cell::EMPTY);
-        self.size = new_size;
+    pub fn fill(&mut self, fill: Cell) {
+        self.cells.fill(fill);
     }
 
     #[inline]
-    pub fn fill(&mut self, mut source: impl FnMut(Position) -> Cell) {
+    pub fn fill_with(&mut self, mut source: impl FnMut(Position) -> Cell) {
         for y in 0..self.size.height() {
             for x in 0..self.size.width() {
                 let position = Position::new(x, y);
