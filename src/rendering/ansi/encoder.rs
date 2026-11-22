@@ -24,8 +24,8 @@ impl Encoder {
 
     #[inline]
     pub fn encode_move(&mut self, position: Position) {
-        let row = Digits::from_u16(position.y.saturating_add(1)).as_bytes();
-        let col = Digits::from_u16(position.x.saturating_add(1)).as_bytes();
+        let row = Digits::from_u16(position.y().saturating_add(1)).as_bytes();
+        let col = Digits::from_u16(position.x().saturating_add(1)).as_bytes();
 
         #[rustfmt::skip]
         let sequence: [u8; 14] = [

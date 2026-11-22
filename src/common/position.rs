@@ -4,19 +4,26 @@ use crate::common::size::Size;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Position {
-    pub x: u16,
-    pub y: u16,
+    x: u16,
+    y: u16,
 }
 
 impl Position {
+    pub const ZERO: Self = Self::new(0, 0);
+
     #[inline]
     pub const fn new(x: u16, y: u16) -> Self {
         Self { x, y }
     }
 
     #[inline]
-    pub const fn zero() -> Self {
-        Self { x: 0, y: 0 }
+    pub const fn x(&self) -> u16 {
+        self.x
+    }
+
+    #[inline]
+    pub const fn y(&self) -> u16 {
+        self.y
     }
 
     #[inline]

@@ -6,8 +6,8 @@ use std::num::NonZeroU16;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Size {
-    pub width: NonZeroU16,
-    pub height: NonZeroU16,
+    width: NonZeroU16,
+    height: NonZeroU16,
 }
 
 impl Size {
@@ -41,7 +41,7 @@ impl Size {
 
     #[inline]
     pub const fn contains(&self, position: Position) -> bool {
-        position.x < self.width.get() && position.y < self.height.get()
+        position.x() < self.width.get() && position.y() < self.height.get()
     }
 
     #[inline]

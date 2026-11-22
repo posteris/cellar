@@ -29,8 +29,49 @@ impl Frame {
     }
 
     #[inline]
-    pub fn clear(&mut self) {
-        self.cells.fill(Cell::EMPTY);
+    pub fn rows(&self) -> impl ExactSizeIterator<Item = &[Cell]> {
+        self.cells.chunks_exact(self.size.width() as usize)
+    }
+
+    #[inline]
+    pub fn rows_mut(&mut self) -> impl ExactSizeIterator<Item = &mut [Cell]> {
+        self.cells.chunks_exact_mut(self.size.width() as usize)
+    }
+
+    #[inline]
+    pub fn indexed_rows(&self) -> impl Iterator<Item = (u16, &[Cell])> {
+        let width = self.size.width() as usize;
+        (0..self.size.height()).zip(self.cells.chunks_exact(width))
+    }
+
+    #[inline]
+    pub fn indexed_rows_mut(&mut self) -> impl Iterator<Item = (u16, &mut [Cell])> {
+        let width = self.size.width() as usize;
+        (0..self.size.height()).zip(self.cells.chunks_exact_mut(width))
+    }
+
+    #[inline]
+    pub fn row(&self, y: u16) -> Option<&[Cell]> {
+        let width = self.size.width() as usize;
+        let start = y as usize * width;
+        self.cells.get(start..start + width)
+    }
+
+    #[inline]
+    pub fn row_mut(&mut self, y: u16) -> Option<&mut [Cell]> {
+        let width = self.size.width() as usize;
+        let start = y as usize * width;
+        self.cells.get_mut(start..start + width)
+    }
+
+    #[inline]
+    pub fn get(&self, position: Position) -> Option<&Cell> {
+        self.row(position.y())?.get(position.x() as usize)
+    }
+
+    #[inline]
+    pub fn get_mut(&mut self, position: Position) -> Option<&mut Cell> {
+        self.row_mut(position.y())?.get_mut(position.x() as usize)
     }
 
     #[inline]
@@ -39,18 +80,16 @@ impl Frame {
     }
 
     #[inline]
-    fn index(&mut self, position: Position) -> Option<&mut Cell> {
-        let index = position.flatten(self.size())?;
-        Some(&mut self.cells[index as usize])
+    pub fn clear(&mut self) {
+        self.fill(Cell::EMPTY);
     }
 
     #[inline]
     pub fn fill_with(&mut self, mut source: impl FnMut(Position) -> Cell) {
-        for y in 0..self.size.height() {
-            for x in 0..self.size.width() {
-                let position = Position::new(x, y);
-                let cell = self.index(position).unwrap();
-                *cell = source(position);
+        let width = self.size.width();
+        for (y, row) in self.indexed_rows_mut() {
+            for (x, cell) in (0..width).zip(row) {
+                *cell = source(Position::new(x, y));
             }
         }
     }

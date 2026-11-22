@@ -29,7 +29,7 @@ impl Painter for Chaos {
         let seed = self.origin.elapsed().as_micros() as u32;
 
         frame.fill_with(|position| {
-            let (xh, yh) = (u32::from(position.x), u32::from(position.y));
+            let (xh, yh) = (u32::from(position.x()), u32::from(position.y()));
             let mut h = xh
                 .wrapping_mul(374_761_393)
                 .wrapping_add(yh.wrapping_mul(668_265_263))
