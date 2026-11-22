@@ -46,12 +46,12 @@ impl Renderer for Terminal {
     }
 
     #[inline]
-    fn present(&mut self, frame: &mut Frame) -> Result<()> {
+    fn present(&mut self, frame: &Frame) -> Result<()> {
         self.encoder.encode_move(Position::zero());
         for cell in frame.cells() {
-            self.encoder.encode_foreground(cell.foreground);
-            self.encoder.encode_background(cell.background);
-            self.encoder.encode_glyph_u8(cell.glyph);
+            self.encoder.encode_foreground(cell.foreground());
+            self.encoder.encode_background(cell.background());
+            self.encoder.encode_glyph_u8(cell.glyph());
         }
 
         self.output.write_all(self.encoder.written())?;

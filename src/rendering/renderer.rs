@@ -7,7 +7,7 @@ use std::{io::Result, time::Duration};
 
 pub trait Renderer {
     fn size(&self) -> Result<Size>;
-    fn present(&mut self, frame: &mut Frame) -> Result<()>;
+    fn present(&mut self, frame: &Frame) -> Result<()>;
 
     fn run(&mut self, painter: &mut impl Painter) -> Result<()> {
         let mut frame = Frame::new(self.size()?);
