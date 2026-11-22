@@ -50,6 +50,7 @@ impl Size {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     ZeroWidth,
     ZeroHeight,
