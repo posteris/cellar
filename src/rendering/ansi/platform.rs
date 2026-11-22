@@ -159,7 +159,7 @@ fn unix_terminal_size(output: &File, request: std::ffi::c_ulong) -> io::Result<S
     let result = unsafe { ioctl(output.as_raw_fd(), request, &mut window as *mut WinSize) };
 
     if result != 0 {
-        return Err(io::Error::last_os_error().into());
+        return Err(io::Error::last_os_error());
     }
 
     Size::try_from((window.ws_col, window.ws_row)).map_err(|_| invalid_dimensions())
