@@ -1,5 +1,3 @@
-use crate::common::position::Position;
-use crate::common::size::Size;
 use crate::rendering::ansi::encoder::Encoder;
 use crate::rendering::ansi::platform::{raw_stdout, terminal_size};
 use crate::rendering::ansi::state::State;
@@ -9,6 +7,9 @@ use std::fs::File;
 use std::io::{Result, Write};
 
 pub struct Terminal {
+    current: Frame,
+    previous: Frame,
+
     state: State,
     encoder: Encoder,
     output: File,
@@ -21,7 +22,12 @@ impl Terminal {
         let encoder = Encoder::new(size.area() as usize * 48);
         let state = State::new();
 
+        let current = Frame::new(size);
+        let previous = Frame::new(size);
+
         let mut terminal = Self {
+            current,
+            previous,
             state,
             encoder,
             output,
@@ -48,24 +54,30 @@ impl Drop for Terminal {
 
 impl Renderer for Terminal {
     #[inline]
-    fn size(&self) -> Result<Size> {
-        terminal_size(&self.output)
-    }
+    fn render(&mut self, mut paint: impl FnMut(&mut Frame)) -> Result<()> {
+        let Self {
+            current,
+            previous,
+            state,
+            encoder,
+            output,
+        } = self;
 
-    #[inline]
-    #[rustfmt::skip]
-    fn present(&mut self, frame: &Frame) -> Result<()> {
-        for (y, row) in frame.indexed_rows() {
-            self.encoder.encode_move(Position::new(0, y));
-            for cell in row {
-                self.state.ensure_foreground(cell.foreground(), |c| self.encoder.encode_foreground(c));
-                self.state.ensure_background(cell.background(), |c| self.encoder.encode_background(c));
-                self.encoder.encode_glyph_u8(cell.glyph());
-            }
+        let current_size = terminal_size(&output)?;
+        current.resize(current_size);
+
+        paint(&mut self.current);
+
+        for delta in self.current.diff(&previous) {
+            state.ensure_cursor(delta.position(), |p| encoder.encode_move(p));
+            state.ensure_foreground(delta.cell().foreground(), |c| encoder.encode_foreground(c));
+            state.ensure_background(delta.cell().background(), |c| encoder.encode_background(c));
+            encoder.encode_glyph_u8(delta.cell().glyph());
+            state.advance_cursor(current_size);
         }
 
-        self.output.write_all(self.encoder.written())?;
-        self.encoder.clear();
+        output.write_all(encoder.written())?;
+        encoder.clear();
         Ok(())
     }
 }

@@ -5,6 +5,29 @@ pub struct Frame {
     cells: Vec<Cell>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Delta {
+    position: Position,
+    cell: Cell,
+}
+
+impl Delta {
+    #[inline]
+    pub const fn new(position: Position, cell: Cell) -> Self {
+        Self { position, cell }
+    }
+
+    #[inline]
+    pub const fn position(&self) -> Position {
+        self.position
+    }
+
+    #[inline]
+    pub const fn cell(&self) -> Cell {
+        self.cell
+    }
+}
+
 impl Frame {
     #[inline]
     pub fn new(size: Size) -> Self {
@@ -14,6 +37,10 @@ impl Frame {
 
     #[inline]
     pub fn resize(&mut self, new_size: Size) {
+        if new_size == self.size {
+            return;
+        }
+
         self.cells.resize(new_size.area() as usize, Cell::EMPTY);
         self.size = new_size;
     }
@@ -26,6 +53,11 @@ impl Frame {
     #[inline]
     pub fn cells(&self) -> &[Cell] {
         &self.cells
+    }
+
+    #[inline]
+    pub fn cells_mut(&mut self) -> &mut [Cell] {
+        &mut self.cells
     }
 
     #[inline]
@@ -92,5 +124,19 @@ impl Frame {
                 *cell = source(Position::new(x, y));
             }
         }
+    }
+
+    pub fn diff<'a>(&'a self, previous: &'a Frame) -> impl Iterator<Item = Delta> + 'a {
+        self.indexed_rows()
+            .zip(previous.indexed_rows())
+            .filter(|((_, current), (_, previous))| current != previous)
+            .flat_map(|((y, current), (_, previous))| {
+                current
+                    .iter()
+                    .zip(previous)
+                    .zip(0..self.size().width())
+                    .filter(|&((new, old), _)| new != old)
+                    .map(move |((new, _), x)| Delta::new(Position::new(x, y), *new))
+            })
     }
 }
