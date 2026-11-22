@@ -54,30 +54,36 @@ impl Drop for Terminal {
 
 impl Renderer for Terminal {
     #[inline]
+    #[rustfmt::skip]
     fn render(&mut self, mut paint: impl FnMut(&mut Frame)) -> Result<()> {
-        let Self {
-            current,
-            previous,
-            state,
-            encoder,
-            output,
-        } = self;
+        let size = terminal_size(&self.output)?;
+        let resized = self.current.size() != size;
 
-        let current_size = terminal_size(&output)?;
-        current.resize(current_size);
+        if resized {
+            self.current.resize(size);
+            self.current.clear();
+            self.previous.resize(size);
+            self.previous.clear();
+            self.state.forget_cursor();
+            self.state.forget_foreground();
+            self.state.forget_background();
+            self.encoder.encode_reset();
+            self.encoder.encode_clear();
+        }
 
         paint(&mut self.current);
 
-        for delta in self.current.diff(&previous) {
-            state.ensure_cursor(delta.position(), |p| encoder.encode_move(p));
-            state.ensure_foreground(delta.cell().foreground(), |c| encoder.encode_foreground(c));
-            state.ensure_background(delta.cell().background(), |c| encoder.encode_background(c));
-            encoder.encode_glyph_u8(delta.cell().glyph());
-            state.advance_cursor(current_size);
+        for delta in self.current.diff(&self.previous) {
+            self.state.ensure_cursor(delta.position(), |p| self.encoder.encode_move(p));
+            self.state.ensure_foreground(delta.cell().foreground(), |c| self.encoder.encode_foreground(c));
+            self.state.ensure_background(delta.cell().background(), |c| self.encoder.encode_background(c));
+            self.encoder.encode_glyph_u8(delta.cell().glyph());
+            self.state.advance_cursor(size);
         }
 
-        output.write_all(encoder.written())?;
-        encoder.clear();
+        self.previous.cells_mut().copy_from_slice(self.current.cells());
+        self.output.write_all(self.encoder.written())?;
+        self.encoder.clear();
         Ok(())
     }
 }
