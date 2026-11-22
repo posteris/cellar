@@ -1,6 +1,6 @@
 use crate::common::color::Color;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Cell {
     foreground: Color,
     background: Color,
