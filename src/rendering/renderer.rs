@@ -15,7 +15,7 @@ pub trait Renderer {
         loop {
             frame.resize(self.size()?);
             painter.paint(&mut frame);
-            self.present(&mut frame)?;
+            self.present(&frame)?;
         }
     }
 
@@ -32,7 +32,7 @@ pub trait Renderer {
             let size = size_watch.measure(|| self.size())?;
             resize_watch.measure(|| frame.resize(size));
             paint_watch.measure(|| painter.paint(&mut frame));
-            present_watch.measure(|| self.present(&mut frame))?;
+            present_watch.measure(|| self.present(&frame))?;
         }
 
         Ok([
