@@ -28,7 +28,7 @@ impl Painter for Chaos {
     fn paint(&mut self, frame: &mut Frame) {
         let seed = self.origin.elapsed().as_micros() as u32;
 
-        frame.fill(|position| {
+        frame.fill_with(|position| {
             let (xh, yh) = (u32::from(position.x), u32::from(position.y));
             let mut h = xh
                 .wrapping_mul(374_761_393)
