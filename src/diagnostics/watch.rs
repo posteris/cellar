@@ -29,7 +29,7 @@ impl Watch {
 
     #[inline]
     pub fn average(&self) -> Duration {
-        self.elapsed / self.laps
+        self.elapsed / self.laps.max(1)
     }
 }
 
