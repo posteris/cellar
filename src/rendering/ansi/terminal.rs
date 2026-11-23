@@ -8,7 +8,6 @@ use std::io::{Result, Write};
 
 pub struct Terminal {
     current: Frame,
-    previous: Frame,
 
     state: State,
     encoder: Encoder,
@@ -23,11 +22,9 @@ impl Terminal {
         let state = State::new();
 
         let current = Frame::new(size);
-        let previous = Frame::new(size);
 
         let mut terminal = Self {
             current,
-            previous,
             state,
             encoder,
             output,
@@ -57,13 +54,9 @@ impl Renderer for Terminal {
     #[rustfmt::skip]
     fn render(&mut self, mut paint: impl FnMut(&mut Frame)) -> Result<()> {
         let size = terminal_size(&self.output)?;
-        let resized = self.current.size() != size;
 
-        if resized {
+        if self.current.size() != size {
             self.current.resize(size);
-            self.current.clear();
-            self.previous.resize(size);
-            self.previous.clear();
             self.state.forget_cursor();
             self.state.forget_foreground();
             self.state.forget_background();
@@ -73,7 +66,7 @@ impl Renderer for Terminal {
 
         paint(&mut self.current);
 
-        for delta in self.current.diff(&self.previous) {
+        for delta in self.current.dirty() {
             self.state.ensure_cursor(delta.position(), |p| self.encoder.encode_move(p));
             self.state.ensure_foreground(delta.cell().foreground(), |c| self.encoder.encode_foreground(c));
             self.state.ensure_background(delta.cell().background(), |c| self.encoder.encode_background(c));
@@ -81,9 +74,16 @@ impl Renderer for Terminal {
             self.state.advance_cursor(size);
         }
 
-        self.previous.cells_mut().copy_from_slice(self.current.cells());
-        self.output.write_all(self.encoder.written())?;
+        if let Err(error) = self.output.write_all(self.encoder.written()) {
+            self.state.forget_cursor();
+            self.state.forget_foreground();
+            self.state.forget_background();
+            self.encoder.clear();
+            return Err(error);
+        }
+
         self.encoder.clear();
+        self.current.clear_dirty();
         Ok(())
     }
 }
