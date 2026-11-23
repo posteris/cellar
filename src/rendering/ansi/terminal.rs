@@ -7,8 +7,7 @@ use std::fs::File;
 use std::io::{Result, Write};
 
 pub struct Terminal {
-    current: Frame,
-
+    frame: Frame,
     state: State,
     encoder: Encoder,
     output: File,
@@ -21,10 +20,10 @@ impl Terminal {
         let encoder = Encoder::new(size.area() as usize * 48);
         let state = State::new();
 
-        let current = Frame::new(size);
+        let frame = Frame::new(size);
 
         let mut terminal = Self {
-            current,
+            frame,
             state,
             encoder,
             output,
@@ -55,8 +54,8 @@ impl Renderer for Terminal {
     fn render(&mut self, mut paint: impl FnMut(&mut Frame)) -> Result<()> {
         let size = terminal_size(&self.output)?;
 
-        if self.current.size() != size {
-            self.current.resize(size);
+        if self.frame.size() != size {
+            self.frame.resize(size);
             self.state.forget_cursor();
             self.state.forget_foreground();
             self.state.forget_background();
@@ -64,9 +63,9 @@ impl Renderer for Terminal {
             self.encoder.encode_clear();
         }
 
-        paint(&mut self.current);
+        paint(&mut self.frame);
 
-        for delta in self.current.dirty() {
+        for delta in self.frame.dirty() {
             self.state.ensure_cursor(delta.position(), |p| self.encoder.encode_move(p));
             self.state.ensure_foreground(delta.cell().foreground(), |c| self.encoder.encode_foreground(c));
             self.state.ensure_background(delta.cell().background(), |c| self.encoder.encode_background(c));
@@ -83,7 +82,7 @@ impl Renderer for Terminal {
         }
 
         self.encoder.clear();
-        self.current.clear_dirty();
+        self.frame.clear_dirty();
         Ok(())
     }
 }
