@@ -20,7 +20,7 @@ impl Digits<3> {
 
     #[inline]
     pub fn lookup_u8(value: u8) -> Self {
-        const DIGITS3: [Digits<3>; 256] = Digits::<3>::create_lookup_table();
+        static DIGITS3: [Digits<3>; 256] = Digits::<3>::create_lookup_table();
         DIGITS3[value as usize]
     }
 
