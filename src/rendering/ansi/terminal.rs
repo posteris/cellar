@@ -17,7 +17,7 @@ impl Terminal {
     pub fn new() -> Result<Self> {
         let output = raw_stdout()?;
         let size = terminal_size(&output)?;
-        let encoder = Encoder::new(size.area() as usize * 48);
+        let encoder = Encoder::new(size.area() as usize * 64);
         let state = State::new();
 
         let frame = Frame::new(size);
