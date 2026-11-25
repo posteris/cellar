@@ -1,21 +1,32 @@
-#[derive(Clone, Copy)]
-pub struct Digits<const C: usize>([u8; C]);
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Digits<const C: usize> {
+    ascii: [u8; C],
+    count: u8,
+}
 
 impl<const C: usize> Digits<C> {
     #[inline]
-    pub const fn as_bytes(self) -> [u8; C] {
-        self.0
+    pub fn ascii(&self) -> &[u8] {
+        &self.ascii[C - self.count as usize..]
+    }
+
+    #[inline]
+    pub const fn count(&self) -> u8 {
+        self.count
     }
 }
 
 impl Digits<3> {
     #[inline]
     pub const fn from_u8(value: u8) -> Self {
-        Self([
+        let count = 1 + (value >= 10) as u8 + (value >= 100) as u8;
+        let ascii = [
             b'0' + value / 100,
             b'0' + value / 10 % 10,
             b'0' + value % 10,
-        ])
+        ];
+
+        Self { ascii, count }
     }
 
     #[inline]
@@ -40,12 +51,19 @@ impl Digits<3> {
 impl Digits<5> {
     #[inline]
     pub const fn from_u16(value: u16) -> Self {
-        Self([
+        let count = 1
+            + (value >= 10) as u8
+            + (value >= 100) as u8
+            + (value >= 1000) as u8
+            + (value >= 10_000) as u8;
+        let ascii = [
             b'0' + (value / 10000) as u8,
             b'0' + (value / 1000 % 10) as u8,
             b'0' + (value / 100 % 10) as u8,
             b'0' + (value / 10 % 10) as u8,
             b'0' + (value % 10) as u8,
-        ])
+        ];
+
+        Self { ascii, count }
     }
 }
