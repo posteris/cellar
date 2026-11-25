@@ -1,34 +1,26 @@
 use crate::{
-    Result,
-    diagnostics::measure::Measure,
-    rendering::{canvas::Canvas, painter::Painter},
+    diagnostics::{chaos::Chaos, watch::Watch},
+    rendering::{frame::Frame, painter::Painter},
 };
-use std::time::Duration;
+use std::{io::Result, time::Duration};
 
-pub trait Renderer: Canvas + Sized {
-    fn present(&mut self) -> Result<()>;
+pub trait Renderer {
+    fn render(&mut self, paint: impl FnMut(&mut Frame)) -> Result<()>;
 
     fn run(&mut self, painter: &mut impl Painter) -> Result<()> {
         loop {
-            painter.paint(self);
-            self.present()?;
+            self.render(|f| painter.paint(f))?;
         }
     }
 
-    fn benchmark(
-        &mut self,
-        painter: &mut impl Painter,
-        iterations: u32,
-    ) -> Result<(Duration, Duration)> {
-        let iterations = iterations.max(1);
-        let mut paint_sum: Duration = Duration::ZERO;
-        let mut present_sum: Duration = Duration::ZERO;
+    fn bench(&mut self, iterations: u32) -> Result<Duration> {
+        let mut painter = Chaos::new();
+        let mut watch = Watch::new();
 
         for _ in 0..iterations {
-            Measure::accumulate(&mut paint_sum, || painter.paint(self));
-            Measure::accumulate(&mut present_sum, || self.present())?;
+            watch.measure(|| self.render(|f| painter.paint(f)))?;
         }
 
-        Ok((paint_sum / iterations, present_sum / iterations))
+        Ok(watch.average())
     }
 }

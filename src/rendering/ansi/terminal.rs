@@ -1,17 +1,13 @@
-use crate::Result;
-use crate::common::etchel::Etchel;
-use crate::common::position::Position;
-use crate::common::size::Size;
 use crate::rendering::ansi::encoder::Encoder;
 use crate::rendering::ansi::platform::{raw_stdout, terminal_size};
 use crate::rendering::ansi::state::State;
-use crate::rendering::canvas::Canvas;
+use crate::rendering::frame::Frame;
 use crate::rendering::renderer::Renderer;
 use std::fs::File;
-use std::io::Write;
+use std::io::{Result, Write};
 
 pub struct Terminal {
-    size: Size,
+    frame: Frame,
     state: State,
     encoder: Encoder,
     output: File,
@@ -21,11 +17,13 @@ impl Terminal {
     pub fn new() -> Result<Self> {
         let output = raw_stdout()?;
         let size = terminal_size(&output)?;
-        let encoder = Encoder::new(size.area() as usize * 32);
+        let encoder = Encoder::new(size.area() as usize * 64);
         let state = State::new();
 
+        let frame = Frame::new(size);
+
         let mut terminal = Self {
-            size,
+            frame,
             state,
             encoder,
             output,
@@ -34,7 +32,7 @@ impl Terminal {
         terminal.encoder.encode_cursor_hide();
         terminal.encoder.encode_alternate_enter();
         terminal.encoder.encode_clear();
-        terminal.present()?;
+        terminal.output.write_all(terminal.encoder.written())?;
 
         Ok(terminal)
     }
@@ -46,36 +44,45 @@ impl Drop for Terminal {
         self.encoder.encode_reset();
         self.encoder.encode_cursor_show();
         self.encoder.encode_alternate_leave();
-        let _ = self.present();
-    }
-}
-
-impl Canvas for Terminal {
-    #[inline]
-    fn size(&self) -> Size {
-        self.size
-    }
-
-    #[inline]
-    fn plot(&mut self, position: Position, etchel: Etchel) {
-        let encoder = &mut self.encoder;
-        let state = &mut self.state;
-
-        state.ensure_cursor(position, |p| encoder.encode_move(p));
-        state.ensure_foreground(etchel.foreground, |c| encoder.encode_foreground(c));
-        state.ensure_background(etchel.background, |c| encoder.encode_background(c));
-        encoder.encode_glyph_u8(etchel.glyph);
-        state.advance_cursor(self.size);
+        let _ = self.output.write_all(self.encoder.written());
     }
 }
 
 impl Renderer for Terminal {
     #[inline]
-    fn present(&mut self) -> Result<()> {
-        self.output.write_all(self.encoder.written())?;
+    #[rustfmt::skip]
+    fn render(&mut self, mut paint: impl FnMut(&mut Frame)) -> Result<()> {
+        let size = terminal_size(&self.output)?;
+
+        if self.frame.size() != size {
+            self.frame.resize(size);
+            self.state.forget_cursor();
+            self.state.forget_foreground();
+            self.state.forget_background();
+            self.encoder.encode_reset();
+            self.encoder.encode_clear();
+        }
+
+        paint(&mut self.frame);
+
+        for delta in self.frame.dirty() {
+            self.state.ensure_cursor(delta.position(), |p| self.encoder.encode_move(p));
+            self.state.ensure_foreground(delta.cell().foreground(), |c| self.encoder.encode_foreground(c));
+            self.state.ensure_background(delta.cell().background(), |c| self.encoder.encode_background(c));
+            self.encoder.encode_glyph_u8(delta.cell().glyph());
+            self.state.advance_cursor(size);
+        }
+
+        if let Err(error) = self.output.write_all(self.encoder.written()) {
+            self.state.forget_cursor();
+            self.state.forget_foreground();
+            self.state.forget_background();
+            self.encoder.clear();
+            return Err(error);
+        }
+
         self.encoder.clear();
-        self.state.forget_cursor();
-        self.size = terminal_size(&self.output)?;
+        self.frame.clear_dirty();
         Ok(())
     }
 }

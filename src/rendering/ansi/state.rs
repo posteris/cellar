@@ -35,9 +35,9 @@ impl State {
     pub fn advance_cursor(&mut self, size: Size) {
         self.cursor = self.cursor.map(|position| {
             let max_position = size.last();
-            if position.x < max_position.x {
+            if position.x() < max_position.x() {
                 position.add_x(1)
-            } else if position.y < max_position.y {
+            } else if position.y() < max_position.y() {
                 position.add_y(1).with_x(0)
             } else {
                 max_position

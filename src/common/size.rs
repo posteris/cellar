@@ -1,11 +1,13 @@
-use crate::common::position::Position;
-use crate::{Error, Result};
+use crate::common::{
+    position::Position,
+    size::Error::{ZeroHeight, ZeroWidth},
+};
 use std::num::NonZeroU16;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Size {
-    pub width: NonZeroU16,
-    pub height: NonZeroU16,
+    width: NonZeroU16,
+    height: NonZeroU16,
 }
 
 impl Size {
@@ -39,7 +41,7 @@ impl Size {
 
     #[inline]
     pub const fn contains(&self, position: Position) -> bool {
-        position.x < self.width.get() && position.y < self.height.get()
+        position.x() < self.width.get() && position.y() < self.height.get()
     }
 
     #[inline]
@@ -48,14 +50,20 @@ impl Size {
     }
 }
 
-impl TryFrom<(u16, u16)> for Size {
-    type Error = crate::Error;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Error {
+    ZeroWidth,
+    ZeroHeight,
+}
 
-    fn try_from((width, height): (u16, u16)) -> Result<Self> {
+impl TryFrom<(u16, u16)> for Size {
+    type Error = Error;
+
+    fn try_from((width, height): (u16, u16)) -> Result<Self, Error> {
         match Self::try_new(width, height) {
             Some(size) => Ok(size),
-            None if width == 0 => Err(Error::ZeroWidth),
-            None => Err(Error::ZeroHeight),
+            None if width == 0 => Err(ZeroWidth),
+            None => Err(ZeroHeight),
         }
     }
 }

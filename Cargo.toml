@@ -1,6 +1,10 @@
 [package]
-name = "yrsk"
+name = "reticuli"
+description = "Cell-based graphics library fully compatible with terminals and windows alike."
+repository = "https://github.com/posteris/reticuli"
 version = "0.1.0"
 edition = "2024"
+readme = "README.md"
+license-file = "LICENSE.md"
 
 [dependencies]

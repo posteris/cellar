@@ -24,8 +24,8 @@ impl Encoder {
 
     #[inline]
     pub fn encode_move(&mut self, position: Position) {
-        let row = Digits::from_u16(position.y.saturating_add(1)).as_bytes();
-        let col = Digits::from_u16(position.x.saturating_add(1)).as_bytes();
+        let row = Digits::from_u16(position.y().saturating_add(1)).as_bytes();
+        let col = Digits::from_u16(position.x().saturating_add(1)).as_bytes();
 
         #[rustfmt::skip]
         let sequence: [u8; 14] = [
@@ -41,9 +41,9 @@ impl Encoder {
 
     #[inline]
     pub fn encode_foreground(&mut self, color: Color) {
-        let r = Digits::look_u8(color.r).as_bytes();
-        let g = Digits::look_u8(color.g).as_bytes();
-        let b = Digits::look_u8(color.b).as_bytes();
+        let r = Digits::lookup_u8(color.r()).as_bytes();
+        let g = Digits::lookup_u8(color.g()).as_bytes();
+        let b = Digits::lookup_u8(color.b()).as_bytes();
 
         #[rustfmt::skip]
         let sequence: [u8; 19] = [
@@ -59,9 +59,9 @@ impl Encoder {
 
     #[inline]
     pub fn encode_background(&mut self, color: Color) {
-        let r = Digits::look_u8(color.r).as_bytes();
-        let g = Digits::look_u8(color.g).as_bytes();
-        let b = Digits::look_u8(color.b).as_bytes();
+        let r = Digits::lookup_u8(color.r()).as_bytes();
+        let g = Digits::lookup_u8(color.g()).as_bytes();
+        let b = Digits::lookup_u8(color.b()).as_bytes();
 
         #[rustfmt::skip]
         let sequence: [u8; 19] = [
