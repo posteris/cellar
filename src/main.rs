@@ -1,4 +1,4 @@
-use cellar::rendering::{ansi::terminal::Terminal, renderer::Renderer};
+use reticuli::rendering::{ansi::terminal::Terminal, renderer::Renderer};
 use std::io::Result;
 
 fn main() -> Result<()> {
