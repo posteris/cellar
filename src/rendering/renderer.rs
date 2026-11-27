@@ -1,26 +1,23 @@
-use crate::{
-    diagnostics::{chaos::Chaos, watch::Watch},
-    rendering::{frame::Frame, painter::Painter},
-};
-use std::{io::Result, time::Duration};
+use crate::{diagnostics::monitor::Monitor, rendering::painter::Painter};
+use std::io::Result;
 
 pub trait Renderer {
-    fn render(&mut self, paint: impl FnMut(&mut Frame)) -> Result<()>;
-
-    fn run(&mut self, painter: &mut impl Painter) -> Result<()> {
+    fn render(&mut self, painter: &mut impl Painter, monitor: &mut Monitor<3>) -> Result<()>;
+    fn run(&mut self, painter: &mut impl Painter, monitor: &mut Monitor<3>) -> Result<()> {
         loop {
-            self.render(|f| painter.paint(f))?;
+            self.render(painter, monitor)?;
         }
     }
-
-    fn bench(&mut self, iterations: u32) -> Result<Duration> {
-        let mut painter = Chaos::new();
-        let mut watch = Watch::new();
-
+    fn iterate(
+        &mut self,
+        iterations: usize,
+        painter: &mut impl Painter,
+        monitor: &mut Monitor<3>,
+    ) -> Result<()> {
         for _ in 0..iterations {
-            watch.measure(|| self.render(|f| painter.paint(f)))?;
+            self.render(painter, monitor)?;
         }
 
-        Ok(watch.average())
+        Ok(())
     }
 }

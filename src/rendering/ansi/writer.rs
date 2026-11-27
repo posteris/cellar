@@ -1,7 +1,8 @@
 use crate::common::color::Color;
 use crate::common::position::Position;
 use crate::common::size::Size;
-use crate::rendering::ansi::sequence::Sequence;
+use crate::rendering::ansi::sequence::{self, Sequence};
+use crate::rendering::ansi::shortest::Shortest;
 
 pub struct Writer {
     size: Size,
@@ -38,17 +39,17 @@ impl Writer {
     #[inline]
     pub fn begin(&mut self) {
         self.clear();
-        Sequence::Cursor(false).encode(&mut self.buffer);
-        Sequence::Alternate(true).encode(&mut self.buffer);
-        Sequence::Clear.encode(&mut self.buffer);
+        sequence::Cursor::<false>.encode(&mut self.buffer);
+        sequence::Alternate::<true>.encode(&mut self.buffer);
+        sequence::Clear.encode(&mut self.buffer);
     }
 
     #[inline]
     pub fn end(&mut self) {
         self.clear();
-        Sequence::Reset.encode(&mut self.buffer);
-        Sequence::Cursor(true).encode(&mut self.buffer);
-        Sequence::Alternate(false).encode(&mut self.buffer);
+        sequence::Reset.encode(&mut self.buffer);
+        sequence::Cursor::<true>.encode(&mut self.buffer);
+        sequence::Alternate::<false>.encode(&mut self.buffer);
     }
 
     #[inline]
@@ -63,15 +64,15 @@ impl Writer {
     pub fn resize(&mut self, size: Size) {
         self.clear();
         self.forget();
-        Sequence::Reset.encode(&mut self.buffer);
-        Sequence::Clear.encode(&mut self.buffer);
+        sequence::Reset.encode(&mut self.buffer);
+        sequence::Clear.encode(&mut self.buffer);
         self.size = size;
     }
 
     #[inline]
     pub fn emit_move(&mut self, target: Position) {
         let Some(cursor) = self.cursor else {
-            Sequence::encode_shortest(&mut self.buffer, None, target);
+            Shortest(None, target).encode(&mut self.buffer);
             self.cursor = Some(target);
             self.pending_wrap = false;
             return;
@@ -82,10 +83,10 @@ impl Writer {
             return;
         }
 
-        Sequence::encode_shortest(&mut self.buffer, Some(cursor), target);
+        Shortest(Some(cursor), target).encode(&mut self.buffer);
 
         if self.pending_wrap && cursor == target {
-            Sequence::Absolute(target).encode(&mut self.buffer);
+            sequence::Absolute(target).encode(&mut self.buffer);
         }
 
         self.cursor = Some(target);
@@ -95,7 +96,7 @@ impl Writer {
     #[inline]
     pub fn emit_foreground(&mut self, color: Color) {
         if self.foreground != Some(color) {
-            Sequence::Foreground(color).encode(&mut self.buffer);
+            sequence::Foreground(color).encode(&mut self.buffer);
             self.foreground = Some(color);
         }
     }
@@ -103,7 +104,7 @@ impl Writer {
     #[inline]
     pub fn emit_background(&mut self, color: Color) {
         if self.background != Some(color) {
-            Sequence::Background(color).encode(&mut self.buffer);
+            sequence::Background(color).encode(&mut self.buffer);
             self.background = Some(color);
         }
     }
@@ -145,7 +146,7 @@ mod tests {
     use super::*;
 
     fn size() -> Size {
-        Size::try_new(4, 2).unwrap()
+        Size::new(4, 2)
     }
 
     fn writer() -> Writer {

@@ -1,12 +1,14 @@
+use crate::diagnostics::monitor::Monitor;
 use crate::rendering::ansi::platform::{raw_stdout, terminal_size};
 use crate::rendering::ansi::writer::Writer;
-use crate::rendering::frame::Frame;
+use crate::rendering::canvas::Canvas;
+use crate::rendering::painter::Painter;
 use crate::rendering::renderer::Renderer;
 use std::fs::File;
 use std::io::{Result, Write};
 
 pub struct Terminal {
-    frame: Frame,
+    canvas: Canvas,
     writer: Writer,
     output: File,
 }
@@ -17,7 +19,7 @@ impl Terminal {
         let mut output = raw_stdout()?;
         let size = terminal_size(&output)?;
 
-        let frame = Frame::new(size);
+        let canvas = Canvas::new(size);
         let mut writer = Writer::new(size);
         writer.begin();
 
@@ -25,7 +27,7 @@ impl Terminal {
         writer.clear();
 
         Ok(Self {
-            frame,
+            canvas,
             writer,
             output,
         })
@@ -41,31 +43,39 @@ impl Drop for Terminal {
 
 impl Renderer for Terminal {
     #[inline]
-    fn render(&mut self, mut paint: impl FnMut(&mut Frame)) -> Result<()> {
+    fn render(&mut self, painter: &mut impl Painter, monitor: &mut Monitor<3>) -> Result<()> {
         let size = terminal_size(&self.output)?;
-
-        if self.frame.size() != size {
-            self.frame.resize(size);
+        if self.canvas.size() != size {
+            self.canvas.resize(size);
             self.writer.resize(size);
         }
 
-        paint(&mut self.frame);
-
-        for delta in self.frame.dirty() {
-            self.writer.emit_move(delta.position());
-            self.writer.emit_foreground(delta.cell().foreground());
-            self.writer.emit_background(delta.cell().background());
-            self.writer.emit_glyph_u8(delta.cell().glyph());
+        {
+            let _lap = monitor.watch(0).lap();
+            painter.paint(&mut self.canvas);
         }
 
-        if let Err(error) = self.output.write_all(self.writer.written()) {
-            self.writer.forget();
-            self.writer.clear();
-            return Err(error);
+        {
+            let _lap = monitor.watch(1).lap();
+            for delta in self.canvas.delta() {
+                self.writer.emit_move(delta.position());
+                self.writer.emit_foreground(delta.cell().foreground());
+                self.writer.emit_background(delta.cell().background());
+                self.writer.emit_glyph_u8(delta.cell().glyph());
+            }
+        }
+
+        {
+            let _lap = monitor.watch(2).lap();
+            if let Err(error) = self.output.write_all(self.writer.written()) {
+                self.writer.forget();
+                self.writer.clear();
+                return Err(error);
+            }
         }
 
         self.writer.clear();
-        self.frame.clear_dirty();
+        self.canvas.clear_delta();
         Ok(())
     }
 }
