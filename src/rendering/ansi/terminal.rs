@@ -1,4 +1,4 @@
-use crate::diagnostics::monitor::Monitor;
+use crate::diagnostics::watch::Watch;
 use crate::rendering::ansi::platform::{raw_stdout, terminal_size};
 use crate::rendering::ansi::writer::Writer;
 use crate::rendering::canvas::Canvas;
@@ -7,7 +7,15 @@ use crate::rendering::renderer::Renderer;
 use std::fs::File;
 use std::io::{Result, Write};
 
+#[derive(Default)]
+pub struct Metrics {
+    pub paint: Watch,
+    pub present: Watch,
+    pub flush: Watch,
+}
+
 pub struct Terminal {
+    metrics: Metrics,
     canvas: Canvas,
     writer: Writer,
     output: File,
@@ -16,6 +24,7 @@ pub struct Terminal {
 impl Terminal {
     #[inline]
     pub fn new() -> Result<Self> {
+        let metrics = Metrics::default();
         let mut output = raw_stdout()?;
         let size = terminal_size(&output)?;
 
@@ -27,6 +36,7 @@ impl Terminal {
         writer.clear();
 
         Ok(Self {
+            metrics,
             canvas,
             writer,
             output,
@@ -42,8 +52,15 @@ impl Drop for Terminal {
 }
 
 impl Renderer for Terminal {
+    type Metrics = Metrics;
+
     #[inline]
-    fn render(&mut self, painter: &mut impl Painter, monitor: &mut Monitor<3>) -> Result<()> {
+    fn metrics(&self) -> &Self::Metrics {
+        &self.metrics
+    }
+
+    #[inline]
+    fn render(&mut self, painter: &mut impl Painter) -> Result<()> {
         let size = terminal_size(&self.output)?;
         if self.canvas.size() != size {
             self.canvas.resize(size);
@@ -51,12 +68,12 @@ impl Renderer for Terminal {
         }
 
         {
-            let _lap = monitor.watch(0).lap();
+            let _lap = self.metrics.paint.lap();
             painter.paint(&mut self.canvas);
         }
 
         {
-            let _lap = monitor.watch(1).lap();
+            let _lap = self.metrics.present.lap();
             for delta in self.canvas.delta() {
                 self.writer.emit_move(delta.position());
                 self.writer.emit_foreground(delta.cell().foreground());
@@ -66,7 +83,7 @@ impl Renderer for Terminal {
         }
 
         {
-            let _lap = monitor.watch(2).lap();
+            let _lap = self.metrics.flush.lap();
             if let Err(error) = self.output.write_all(self.writer.written()) {
                 self.writer.forget();
                 self.writer.clear();

@@ -1,21 +1,19 @@
-use crate::{diagnostics::monitor::Monitor, rendering::painter::Painter};
+use crate::rendering::painter::Painter;
 use std::io::Result;
 
 pub trait Renderer {
-    fn render(&mut self, painter: &mut impl Painter, monitor: &mut Monitor<3>) -> Result<()>;
-    fn run(&mut self, painter: &mut impl Painter, monitor: &mut Monitor<3>) -> Result<()> {
+    type Metrics: Default;
+    fn metrics(&self) -> &Self::Metrics;
+
+    fn render(&mut self, painter: &mut impl Painter) -> Result<()>;
+    fn run(&mut self, painter: &mut impl Painter) -> Result<()> {
         loop {
-            self.render(painter, monitor)?;
+            self.render(painter)?;
         }
     }
-    fn iterate(
-        &mut self,
-        iterations: usize,
-        painter: &mut impl Painter,
-        monitor: &mut Monitor<3>,
-    ) -> Result<()> {
+    fn iterate(&mut self, iterations: usize, painter: &mut impl Painter) -> Result<()> {
         for _ in 0..iterations {
-            self.render(painter, monitor)?;
+            self.render(painter)?;
         }
 
         Ok(())
