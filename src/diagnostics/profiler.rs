@@ -1,6 +1,6 @@
 use crate::{
     diagnostics::{chaos::Chaos, watch::Watch},
-    rendering::renderer::Renderer,
+    rendering::ansi::terminal::Terminal,
 };
 use std::{io::Result, time::Duration};
 
@@ -14,28 +14,28 @@ pub struct Profiler {
 
 impl Profiler {
     #[inline]
-    pub fn bench(&mut self, renderer: &mut impl Renderer, iterations: usize) -> Result<()> {
+    pub fn bench(&mut self, terminal: &mut Terminal, iterations: usize) -> Result<()> {
         let mut chaos = Chaos::new();
 
         for _ in 0..iterations {
             {
                 let _sample = self.events.sample();
-                renderer.events()?;
+                terminal.events()?;
             }
 
             {
                 let _sample = self.paint.sample();
-                renderer.paint(&mut chaos);
+                terminal.paint(&mut chaos);
             }
 
             {
                 let _sample = self.present.sample();
-                renderer.present();
+                terminal.present();
             }
 
             {
                 let _sample = self.flush.sample();
-                renderer.flush()?;
+                terminal.flush()?;
             }
         }
 

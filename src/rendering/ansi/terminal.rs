@@ -1,10 +1,21 @@
-use crate::rendering::ansi::platform::{raw_stdout, terminal_size};
-use crate::rendering::ansi::writer::Writer;
-use crate::rendering::canvas::Canvas;
-use crate::rendering::painter::Painter;
-use crate::rendering::renderer::Renderer;
-use std::fs::File;
-use std::io::{Result, Write};
+use std::{
+    fs::File,
+    io::{Result, Write},
+    thread,
+    time::{Duration, Instant},
+};
+
+use crate::rendering::{
+    ansi::{
+        platform::{raw_stdout, terminal_size},
+        writer::Writer,
+    },
+    canvas::Canvas,
+    pace::Pace,
+    painter::Painter,
+};
+
+const WAIT_POLL_INTERVAL: Duration = Duration::from_millis(50);
 
 pub struct Terminal {
     canvas: Canvas,
@@ -31,18 +42,28 @@ impl Terminal {
             output,
         })
     }
-}
 
-impl Drop for Terminal {
-    fn drop(&mut self) {
-        self.writer.end();
-        let _ = self.output.write_all(self.writer.written());
+    pub fn run(&mut self, painter: &mut impl Painter) -> Result<()> {
+        loop {
+            self.events()?;
+
+            let pace = self.paint(painter);
+
+            self.present();
+            self.flush()?;
+
+            match pace {
+                Pace::Next => {}
+                Pace::At(deadline) => {
+                    thread::sleep(deadline.saturating_duration_since(Instant::now()));
+                }
+                Pace::Wait => thread::sleep(WAIT_POLL_INTERVAL),
+            }
+        }
     }
-}
 
-impl Renderer for Terminal {
     #[inline]
-    fn events(&mut self) -> Result<()> {
+    pub(crate) fn events(&mut self) -> Result<()> {
         let size = terminal_size(&self.output)?;
         if self.canvas.size() != size {
             self.canvas.resize(size);
@@ -53,12 +74,12 @@ impl Renderer for Terminal {
     }
 
     #[inline]
-    fn paint(&mut self, painter: &mut impl Painter) {
-        painter.paint(&mut self.canvas);
+    pub(crate) fn paint(&mut self, painter: &mut impl Painter) -> Pace {
+        painter.paint(&mut self.canvas)
     }
 
     #[inline]
-    fn present(&mut self) {
+    pub(crate) fn present(&mut self) {
         for delta in self.canvas.delta() {
             self.writer.emit_move(delta.position());
             self.writer.emit_foreground(delta.cell().foreground());
@@ -68,7 +89,7 @@ impl Renderer for Terminal {
     }
 
     #[inline]
-    fn flush(&mut self) -> Result<()> {
+    pub(crate) fn flush(&mut self) -> Result<()> {
         if let Err(error) = self.output.write_all(self.writer.written()) {
             self.writer.forget();
             self.writer.clear();
@@ -78,5 +99,12 @@ impl Renderer for Terminal {
         self.writer.clear();
         self.canvas.clear_delta();
         Ok(())
+    }
+}
+
+impl Drop for Terminal {
+    fn drop(&mut self) {
+        self.writer.end();
+        let _ = self.output.write_all(self.writer.written());
     }
 }
