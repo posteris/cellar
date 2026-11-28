@@ -51,6 +51,7 @@ pub fn raw_stdout() -> io::Result<File> {
     Ok(file)
 }
 
+#[cfg(windows)]
 fn invalid_dimensions() -> io::Error {
     io::Error::new(
         io::ErrorKind::InvalidData,
@@ -119,7 +120,7 @@ pub fn terminal_size(output: &File) -> io::Result<Size> {
     let width = u16::try_from(width).map_err(|_| invalid_dimensions())?;
     let height = u16::try_from(height).map_err(|_| invalid_dimensions())?;
 
-    Size::try_from((width, height)).map_err(|_| invalid_dimensions())
+    Ok(Size::new(width, height))
 }
 
 #[cfg(any(
@@ -162,7 +163,7 @@ fn unix_terminal_size(output: &File, request: std::ffi::c_ulong) -> io::Result<S
         return Err(io::Error::last_os_error());
     }
 
-    Size::try_from((window.ws_col, window.ws_row)).map_err(|_| invalid_dimensions())
+    Ok(Size::new(window.ws_col, window.ws_row))
 }
 
 #[cfg(any(target_os = "linux", target_os = "android"))]

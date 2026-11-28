@@ -8,3 +8,7 @@ readme = "README.md"
 license-file = "LICENSE.md"
 
 [dependencies]
+bytemuck = "1.25.2"
+pollster = "1.0.3"
+wgpu = "30.0.2"
+winit = "0.30.13"

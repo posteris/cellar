@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use crate::{
     common::{cell::Cell, color::Color},
-    rendering::{frame::Frame, painter::Painter},
+    rendering::{canvas::Canvas, pace::Pace, painter::Painter},
 };
 
 pub struct Chaos {
@@ -25,10 +25,10 @@ impl Default for Chaos {
 }
 
 impl Painter for Chaos {
-    fn paint(&mut self, frame: &mut Frame) {
+    fn paint(&mut self, canvas: &mut Canvas) -> Pace {
         let seed = self.origin.elapsed().as_micros() as u32;
 
-        frame.fill_with(|position| {
+        canvas.fill_with(|position| {
             let (xh, yh) = (u32::from(position.x()), u32::from(position.y()));
             let mut h = xh
                 .wrapping_mul(374_761_393)
@@ -40,5 +40,7 @@ impl Painter for Chaos {
             let color = Color::new(h as u8, (h >> 8) as u8, (h >> 16) as u8);
             Cell::solid(color)
         });
+
+        Pace::Next
     }
 }
