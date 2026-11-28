@@ -4,6 +4,7 @@ use crate::{
 };
 use std::{io::Result, time::Duration};
 
+#[derive(Default)]
 pub struct Profiler {
     events: Watch,
     paint: Watch,
@@ -12,16 +13,6 @@ pub struct Profiler {
 }
 
 impl Profiler {
-    #[inline]
-    pub fn new() -> Self {
-        Self {
-            events: Watch::new(),
-            paint: Watch::new(),
-            present: Watch::new(),
-            flush: Watch::new(),
-        }
-    }
-
     #[inline]
     pub fn bench(&mut self, renderer: &mut impl Renderer, iterations: usize) -> Result<()> {
         let mut chaos = Chaos::new();
@@ -52,7 +43,7 @@ impl Profiler {
     }
 
     #[inline]
-    pub fn results(&self) -> [(&'static str, Duration); 4] {
+    pub fn averages(&self) -> [(&'static str, Duration); 4] {
         [
             ("events", self.events.average()),
             ("paint", self.paint.average()),
