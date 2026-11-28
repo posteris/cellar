@@ -51,6 +51,7 @@ pub fn raw_stdout() -> io::Result<File> {
     Ok(file)
 }
 
+#[cfg(windows)]
 fn invalid_dimensions() -> io::Error {
     io::Error::new(
         io::ErrorKind::InvalidData,
