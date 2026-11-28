@@ -1,8 +1,8 @@
 use std::time::{Duration, Instant};
 
 #[must_use = "measurement ends immediately if not bound to a variable"]
-pub struct Lap<'a>(&'a mut Watch, Instant);
-impl Drop for Lap<'_> {
+pub struct Sample<'a>(&'a mut Watch, Instant);
+impl Drop for Sample<'_> {
     #[inline]
     fn drop(&mut self) {
         self.0.elapsed += self.1.elapsed();
@@ -25,8 +25,8 @@ impl Watch {
     }
 
     #[inline]
-    pub fn lap(&mut self) -> Lap<'_> {
-        Lap(self, Instant::now())
+    pub fn sample(&mut self) -> Sample<'_> {
+        Sample(self, Instant::now())
     }
 
     #[inline]

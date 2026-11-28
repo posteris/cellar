@@ -1,21 +1,15 @@
-use reticuli::{
-    diagnostics::chaos::Chaos,
-    rendering::{ansi::terminal::Terminal, renderer::Renderer},
-};
+use reticuli::{diagnostics::profiler::Profiler, rendering::ansi::terminal::Terminal};
 use std::io::Result;
 
 fn main() -> Result<()> {
-    let mut chaos = Chaos::new();
+    let mut profiler = Profiler::new();
     let mut terminal = Terminal::new()?;
-    terminal.iterate(10_000, &mut chaos)?;
-    let paint = terminal.metrics().paint.average().as_micros();
-    let present = terminal.metrics().present.average().as_micros();
-    let flush = terminal.metrics().flush.average().as_micros();
+    profiler.bench(&mut terminal, 10_000)?;
     drop(terminal);
 
-    println!(
-        "paint: {}us - present: {}us - flush: {}us",
-        paint, present, flush,
-    );
+    for result in profiler.results() {
+        println!("{}: {}us", result.0, result.1.as_micros());
+    }
+
     Ok(())
 }

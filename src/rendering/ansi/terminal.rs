@@ -1,4 +1,3 @@
-use crate::diagnostics::watch::Watch;
 use crate::rendering::ansi::platform::{raw_stdout, terminal_size};
 use crate::rendering::ansi::writer::Writer;
 use crate::rendering::canvas::Canvas;
@@ -7,15 +6,7 @@ use crate::rendering::renderer::Renderer;
 use std::fs::File;
 use std::io::{Result, Write};
 
-#[derive(Default)]
-pub struct Metrics {
-    pub paint: Watch,
-    pub present: Watch,
-    pub flush: Watch,
-}
-
 pub struct Terminal {
-    metrics: Metrics,
     canvas: Canvas,
     writer: Writer,
     output: File,
@@ -24,7 +15,6 @@ pub struct Terminal {
 impl Terminal {
     #[inline]
     pub fn new() -> Result<Self> {
-        let metrics = Metrics::default();
         let mut output = raw_stdout()?;
         let size = terminal_size(&output)?;
 
@@ -36,7 +26,6 @@ impl Terminal {
         writer.clear();
 
         Ok(Self {
-            metrics,
             canvas,
             writer,
             output,
@@ -52,43 +41,38 @@ impl Drop for Terminal {
 }
 
 impl Renderer for Terminal {
-    type Metrics = Metrics;
-
     #[inline]
-    fn metrics(&self) -> &Self::Metrics {
-        &self.metrics
-    }
-
-    #[inline]
-    fn render(&mut self, painter: &mut impl Painter) -> Result<()> {
+    fn events(&mut self) -> Result<()> {
         let size = terminal_size(&self.output)?;
         if self.canvas.size() != size {
             self.canvas.resize(size);
             self.writer.resize(size);
         }
 
-        {
-            let _lap = self.metrics.paint.lap();
-            painter.paint(&mut self.canvas);
-        }
+        Ok(())
+    }
 
-        {
-            let _lap = self.metrics.present.lap();
-            for delta in self.canvas.delta() {
-                self.writer.emit_move(delta.position());
-                self.writer.emit_foreground(delta.cell().foreground());
-                self.writer.emit_background(delta.cell().background());
-                self.writer.emit_glyph_u8(delta.cell().glyph());
-            }
-        }
+    #[inline]
+    fn paint(&mut self, painter: &mut impl Painter) {
+        painter.paint(&mut self.canvas);
+    }
 
-        {
-            let _lap = self.metrics.flush.lap();
-            if let Err(error) = self.output.write_all(self.writer.written()) {
-                self.writer.forget();
-                self.writer.clear();
-                return Err(error);
-            }
+    #[inline]
+    fn present(&mut self) {
+        for delta in self.canvas.delta() {
+            self.writer.emit_move(delta.position());
+            self.writer.emit_foreground(delta.cell().foreground());
+            self.writer.emit_background(delta.cell().background());
+            self.writer.emit_glyph_u8(delta.cell().glyph());
+        }
+    }
+
+    #[inline]
+    fn flush(&mut self) -> Result<()> {
+        if let Err(error) = self.output.write_all(self.writer.written()) {
+            self.writer.forget();
+            self.writer.clear();
+            return Err(error);
         }
 
         self.writer.clear();
