@@ -224,7 +224,7 @@ impl Sequence for Up {
         if self.0 == 0 || self.0 == 1 {
             buffer.extend_from_slice(b"\x1b[A");
         } else {
-            let digits = Digits::from_u16(self.0.saturating_add(1));
+            let digits = Digits::from_u16(self.0);
 
             buffer.extend_from_slice(b"\x1b[");
             buffer.extend_from_slice(digits.ascii());
@@ -237,7 +237,7 @@ impl Sequence for Up {
         if self.0 == 0 || self.0 == 1 {
             3
         } else {
-            3 + Digits::from_u16(self.0.saturating_add(1)).count()
+            3 + Digits::from_u16(self.0).count()
         }
     }
 }
@@ -249,7 +249,7 @@ impl Sequence for Down {
         if self.0 == 0 || self.0 == 1 {
             buffer.extend_from_slice(b"\x1b[B");
         } else {
-            let digits = Digits::from_u16(self.0.saturating_add(1));
+            let digits = Digits::from_u16(self.0);
 
             buffer.extend_from_slice(b"\x1b[");
             buffer.extend_from_slice(digits.ascii());
@@ -262,7 +262,7 @@ impl Sequence for Down {
         if self.0 == 0 || self.0 == 1 {
             3
         } else {
-            3 + Digits::from_u16(self.0.saturating_add(1)).count()
+            3 + Digits::from_u16(self.0).count()
         }
     }
 }
@@ -274,7 +274,7 @@ impl Sequence for Right {
         if self.0 == 0 || self.0 == 1 {
             buffer.extend_from_slice(b"\x1b[C");
         } else {
-            let digits = Digits::from_u16(self.0.saturating_add(1));
+            let digits = Digits::from_u16(self.0);
 
             buffer.extend_from_slice(b"\x1b[");
             buffer.extend_from_slice(digits.ascii());
@@ -287,7 +287,7 @@ impl Sequence for Right {
         if self.0 == 0 || self.0 == 1 {
             3
         } else {
-            3 + Digits::from_u16(self.0.saturating_add(1)).count()
+            3 + Digits::from_u16(self.0).count()
         }
     }
 }
@@ -299,7 +299,7 @@ impl Sequence for Left {
         if self.0 == 0 || self.0 == 1 {
             buffer.extend_from_slice(b"\x1b[D");
         } else {
-            let digits = Digits::from_u16(self.0.saturating_add(1));
+            let digits = Digits::from_u16(self.0);
 
             buffer.extend_from_slice(b"\x1b[");
             buffer.extend_from_slice(digits.ascii());
@@ -312,7 +312,7 @@ impl Sequence for Left {
         if self.0 == 0 || self.0 == 1 {
             3
         } else {
-            3 + Digits::from_u16(self.0.saturating_add(1)).count()
+            3 + Digits::from_u16(self.0).count()
         }
     }
 }
